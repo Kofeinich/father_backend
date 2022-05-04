@@ -145,3 +145,13 @@ async def send_email(email: Email):
         text_template=BODY_TEMPLATE,
         body_params=email.dict()
     )
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/register")
+async def register_handler(request: RegisterRequest):
+    await User.create(name=request.username,password=get_password_hash(request.password))
