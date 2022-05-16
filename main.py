@@ -1,3 +1,4 @@
+import json
 import re
 from datetime import timedelta, datetime
 from email.mime.text import MIMEText
@@ -9,10 +10,11 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, validator
 from starlette import status
+from starlette.websockets import WebSocket, WebSocketDisconnect
 from tortoise import Tortoise
 from tortoise.contrib.pydantic import pydantic_model_creator
 from redmail import gmail
-from db import init, PostTag, Post, User
+from db import init, Post, User
 from config import *
 
 app = FastAPI()
@@ -49,12 +51,6 @@ async def startup():
     await Tortoise.close_connections()
 
 
-@app.get("/post", response_model=List[pydantic_model_creator(Post)])
-async def get_posts(tag: PostTag = None) -> List[Post]:
-    if tag is None:
-        return await Post.all()
-    return await Post.filter(tag=tag)
-
 
 Post_Pydantic = pydantic_model_creator(Post, exclude=("id", "updated_at", "created_at"))
 
@@ -68,6 +64,50 @@ async def create_post(new_post_pydantic: Post_Pydantic, _: User = Depends(get_cu
 @app.delete("/post")
 async def delete_post(post_id: int, _: User = Depends(get_current_user)):
     await Post.filter(id=post_id).delete()
+
+
+@app.patch("/post")
+async def edit_post(post_id: int, post_pydantic: Post_Pydantic, _: User = Depends(get_current_user)):
+    post = await Post.get(id=post_id)
+    post = post.update_from_dict(post_pydantic.dict())
+    await post.save()
+
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+
+manager = ConnectionManager()
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            print(data)
+            post_id = data["postId"]
+            new_json = data["body"]
+            await Post.filter(id=post_id).update(body=new_json)
+            await manager.broadcast(json.dumps(data))
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -154,4 +194,4 @@ class RegisterRequest(BaseModel):
 
 @app.post("/register")
 async def register_handler(request: RegisterRequest):
-    await User.create(name=request.username,password=get_password_hash(request.password))
+    await User.create(name=request.username, password=get_password_hash(request.password))

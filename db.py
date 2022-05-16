@@ -16,25 +16,14 @@ class User(Model):
         return self.name
 
 
-class PostTag(str, Enum):
-    arbitrage = "arbitrage"
-    debts = "debts"
-    estate = "estate"
-    family = "family"
-    her = "her"
-    lit = "lit"
-
-
 class Post(Model):
-    id = fields.IntField(pk=True)
+    id = fields.CharField(128, pk=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
-    name = fields.CharField(max_length=255)
-    tag = fields.CharEnumField(PostTag)
     body = fields.JSONField()
 
     def __str__(self):
-        return self.name
+        return self.id
 
 
 async def init():
