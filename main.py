@@ -87,9 +87,10 @@ class ConnectionManager:
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
 
-    async def broadcast(self, message: str):
+    async def broadcast(self, message: str, websocket: WebSocket):
         for connection in self.active_connections:
-            await connection.send_text(message)
+            if websocket is not connection:
+                await connection.send_text(message)
 
 
 manager = ConnectionManager()
@@ -104,8 +105,12 @@ async def websocket_endpoint(websocket: WebSocket):
             print(data)
             post_id = data["postId"]
             new_json = data["body"]
-            await Post.filter(id=post_id).update(body=new_json)
-            await manager.broadcast(json.dumps(data))
+            if new_json is None:
+                post = await Post.get(id=post_id)
+                await manager.send_personal_message(json.dumps({"postId": post.id, "body": post.body}), websocket)
+            else:
+                await Post.filter(id=post_id).update(body=new_json)
+                await manager.broadcast(json.dumps(data), websocket)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
