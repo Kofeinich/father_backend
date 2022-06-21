@@ -51,7 +51,6 @@ async def startup():
     await Tortoise.close_connections()
 
 
-
 Post_Pydantic = pydantic_model_creator(Post, exclude=("id", "updated_at", "created_at"))
 
 
@@ -200,3 +199,8 @@ class RegisterRequest(BaseModel):
 @app.post("/register")
 async def register_handler(request: RegisterRequest):
     await User.create(name=request.username, password=get_password_hash(request.password))
+
+
+@app.get("/post")
+async def get_post(post_id: str):
+    return await Post.get(id=post_id)
