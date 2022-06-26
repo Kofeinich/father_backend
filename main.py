@@ -187,6 +187,7 @@ async def send_email(email: Email):
         subject,
         receivers=[TO_EMAIL],
         text=BODY_TEMPLATE % (email.name, email.email, email.phone, email.body),
+        use_jinja=False,
     )
 
 
