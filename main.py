@@ -186,8 +186,7 @@ async def send_email(email: Email):
     gmail.send(
         subject,
         receivers=[TO_EMAIL],
-        text_template=BODY_TEMPLATE,
-        body_params=email.dict()
+        text=BODY_TEMPLATE % (email.name, email.email, email.phone, email.body),
     )
 
 

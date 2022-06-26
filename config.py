@@ -8,10 +8,10 @@ FROM_EMAIL = env.str("FROM_EMAIL")
 TO_EMAIL = env.str("TO_EMAIL")
 GMAIL_PASSWORD = env.str("GMAIL_PASSWORD")
 BODY_TEMPLATE = '''New mail
-Name: {{name}}
-Email: {{email}}
-Phone: {{phone}}
-Text: {{text}}
+Name: %s
+Email: %s
+Phone: %s
+Text: %s
 '''
 
 DB_URL = 'sqlite://db.sqlite3'
