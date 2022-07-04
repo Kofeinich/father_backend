@@ -6,7 +6,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 FROM_EMAIL = env.str("FROM_EMAIL")
 TO_EMAIL = env.str("TO_EMAIL")
-GMAIL_PASSWORD = env.str("GMAIL_PASSWORD")
+MAIL_PASSWORD = env.str("MAIL_PASSWORD")
 BODY_TEMPLATE = '''New mail
 Name: %s
 Email: %s

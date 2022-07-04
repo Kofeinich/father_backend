@@ -1,7 +1,6 @@
 import json
 import re
 from datetime import timedelta, datetime
-from email.mime.text import MIMEText
 from typing import Optional, List
 
 from fastapi import FastAPI, Depends, HTTPException
@@ -13,9 +12,10 @@ from starlette import status
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from tortoise import Tortoise
 from tortoise.contrib.pydantic import pydantic_model_creator
-from redmail import gmail
-from db import init, Post, User
+
 from config import *
+from db import init, Post, User
+from mailing import gmail_send_message
 
 app = FastAPI()
 
@@ -176,18 +176,12 @@ class Email(BaseModel):
         return v
 
 
-gmail.username = FROM_EMAIL
-gmail.password = GMAIL_PASSWORD
-
-
 @app.post("/send_email")
 async def send_email(email: Email):
     subject = f'Mail from {email.name}'
-    gmail.send(
+    gmail_send_message(
         subject,
-        receivers=[TO_EMAIL],
-        text=BODY_TEMPLATE % (email.name, email.email, email.phone, email.body),
-        use_jinja=False,
+        BODY_TEMPLATE % (email.name, email.email, email.phone, email.body),
     )
 
 
